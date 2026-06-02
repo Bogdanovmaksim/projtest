@@ -1,0 +1,11 @@
+build/
+cmake-build-*/
+.idea/
+.DS_Store
+tasks.txt
+archive.txt
+test_tasks.txt
+test_archive.txt
+*_tasks.txt
+*_archive.txt
+еtasks.txt

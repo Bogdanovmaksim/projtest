@@ -1,0 +1,112 @@
+#pragma once
+
+#include <filesystem>
+#include <optional>
+#include <string>
+#include <vector>
+
+#include "task.h"
+
+namespace task_manager {
+
+/*!
+ * \brief Набор полей для изменения задачи.
+ */
+struct TaskUpdate {
+    std::optional<std::string> description; ///< Новое описание.
+    std::optional<Date> deadline;           ///< Новый дедлайн.
+    std::optional<std::string> category;    ///< Новая категория.
+    std::optional<Importance> importance;   ///< Новая важность.
+    std::optional<Status> status;           ///< Новый статус.
+};
+
+/*!
+ * \brief Менеджер задач с загрузкой и сохранением в файлы.
+ */
+class TaskManager {
+public:
+    /*!
+     * \brief Создает менеджер задач.
+     * \param[in] storagePath Файл задач.
+     * \param[in] archivePath Файл архива.
+     */
+    TaskManager(std::filesystem::path storagePath, std::filesystem::path archivePath);
+
+    /*!
+     * \brief Загружает задачи из файла.
+     */
+    void load();
+
+    /*!
+     * \brief Сохраняет задачи в файл.
+     */
+    void save() const;
+
+    /*!
+     * \brief Добавляет новую задачу.
+     * \param[in] description Описание.
+     * \param[in] deadline Дедлайн.
+     * \param[in] category Категория.
+     * \param[in] importance Важность.
+     * \return Созданная задача.
+     */
+    Task addTask(std::string description, Date deadline, std::string category, Importance importance);
+
+    /*!
+     * \brief Изменяет существующую задачу.
+     * \param[in] id Идентификатор.
+     * \param[in] update Новые значения полей.
+     * \return Обновленная задача.
+     */
+    Task updateTask(int id, const TaskUpdate& update);
+
+    /*!
+     * \brief Отмечает задачу выполненной.
+     * \param[in] id Идентификатор.
+     */
+    void markDone(int id);
+
+    /*!
+     * \brief Удаляет задачу.
+     * \param[in] id Идентификатор.
+     * \return Удаленная задача.
+     */
+    Task removeTask(int id);
+
+    /*!
+     * \brief Возвращает задачи, подходящие под фильтр.
+     * \param[in] filter Фильтр.
+     * \return Список задач.
+     */
+    std::vector<Task> filterTasks(const TaskFilter& filter) const;
+
+    /*!
+     * \brief Возвращает задачи, отсортированные по дедлайну.
+     * \return Отсортированный список.
+     */
+    std::vector<Task> sortedByDeadline() const;
+
+    /*!
+     * \brief Архивирует выполненные задачи.
+     * \return Количество архивированных задач.
+     */
+    std::size_t archiveCompleted();
+
+    /*!
+     * \brief Возвращает текущий список задач.
+     * \return Константная ссылка на задачи.
+     */
+    const std::vector<Task>& tasks() const;
+
+private:
+    std::filesystem::path storagePath_;
+    std::filesystem::path archivePath_;
+    std::vector<Task> tasks_;
+    int nextId_{1};
+
+    Task& findTask(int id);
+    const Task& findTask(int id) const;
+    void refreshNextId();
+};
+
+} // namespace task_manager
