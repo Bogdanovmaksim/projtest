@@ -86,7 +86,7 @@ std::string statusToString(Status status);
 Status statusFromString(const std::string& text);
 
 /*!
-\brief Разбирает дату формата YYYY-MM-DD.
+\brief Разбирает дату формата ДД.ММ.ГГГГ.
 \param[in] text Строка с датой.
 \return Распознанная дата.
 \throws std::invalid_argument Если дата некорректна.
@@ -94,7 +94,7 @@ Status statusFromString(const std::string& text);
 Date parseDate(const std::string& text);
 
 /*!
-\brief Форматирует дату в YYYY-MM-DD.
+\brief Форматирует дату в ДД.ММ.ГГГГ.
 \param[in] date Дата.
 \return Строковое представление даты.
 */

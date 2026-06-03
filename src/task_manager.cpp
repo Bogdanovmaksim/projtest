@@ -1,12 +1,39 @@
 #include "task_manager.h"
 
 #include <algorithm>
+#include <chrono>
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
 
 namespace task_manager {
+namespace {
 
+/*!
+\brief Возвращает текущую календарную дату.
+*/
+Date currentDate() {
+    const auto now = std::chrono::floor<std::chrono::days>(std::chrono::system_clock::now());
+    const std::chrono::year_month_day calendar{now};
+    return Date{static_cast<int>(calendar.year()),
+                static_cast<int>(static_cast<unsigned>(calendar.month())),
+                static_cast<int>(static_cast<unsigned>(calendar.day()))};
+}
+
+/*!
+\brief Проверяет, что дедлайн не находится в прошлом.
+*/
+void ensureDeadlineIsNotPast(const Date& deadline) {
+    if (compareDates(deadline, currentDate()) < 0) {
+        throw std::invalid_argument("Дедлайн не может быть раньше сегодняшней даты");
+    }
+}
+
+}  // namespace
+
+/*!
+\brief Создает менеджер задач.
+*/
 TaskManager::TaskManager(std::filesystem::path storagePath, std::filesystem::path archivePath)
     : storagePath_(std::move(storagePath)), archivePath_(std::move(archivePath)) {
     if (storagePath_.empty() || archivePath_.empty()) {
@@ -14,6 +41,9 @@ TaskManager::TaskManager(std::filesystem::path storagePath, std::filesystem::pat
     }
 }
 
+/*!
+\brief Загружает задачи из файла хранения.
+*/
 void TaskManager::load() {
     tasks_.clear();
     if (!std::filesystem::exists(storagePath_)) {
@@ -42,6 +72,9 @@ void TaskManager::load() {
     refreshNextId();
 }
 
+/*!
+\brief Сохраняет задачи в основной файл.
+*/
 void TaskManager::save() const {
     std::ofstream output(storagePath_, std::ios::trunc);
     if (!output) {
@@ -52,8 +85,12 @@ void TaskManager::save() const {
     }
 }
 
+/*!
+\brief Добавляет новую задачу.
+*/
 Task TaskManager::addTask(std::string description, Date deadline, std::string category,
                           Importance importance) {
+    ensureDeadlineIsNotPast(deadline);
     Task task{nextId_++, std::move(description), deadline, std::move(category), importance,
               Status::Active};
     serializeTask(task);
@@ -61,6 +98,9 @@ Task TaskManager::addTask(std::string description, Date deadline, std::string ca
     return task;
 }
 
+/*!
+\brief Изменяет поля существующей задачи.
+*/
 Task TaskManager::updateTask(int id, const TaskUpdate& update) {
     Task& task = findTask(id);
     Task candidate = task;
@@ -68,6 +108,10 @@ Task TaskManager::updateTask(int id, const TaskUpdate& update) {
         candidate.description = update.description.value();
     }
     if (update.deadline.has_value()) {
+        ensureDeadlineIsNotPast(update.deadline.value());
+        if (compareDates(update.deadline.value(), task.deadline) < 0) {
+            throw std::invalid_argument("Новый дедлайн не может быть раньше текущего");
+        }
         candidate.deadline = update.deadline.value();
     }
     if (update.category.has_value()) {
@@ -84,12 +128,18 @@ Task TaskManager::updateTask(int id, const TaskUpdate& update) {
     return task;
 }
 
+/*!
+\brief Отмечает задачу выполненной.
+*/
 void TaskManager::markDone(int id) {
     TaskUpdate update;
     update.status = Status::Done;
     updateTask(id, update);
 }
 
+/*!
+\brief Удаляет задачу из списка.
+*/
 Task TaskManager::removeTask(int id) {
     const auto iterator = std::find_if(tasks_.begin(), tasks_.end(), [id](const Task& task) {
         return task.id == id;
@@ -102,6 +152,9 @@ Task TaskManager::removeTask(int id) {
     return removed;
 }
 
+/*!
+\brief Возвращает задачи, подходящие под фильтр.
+*/
 std::vector<Task> TaskManager::filterTasks(const TaskFilter& filter) const {
     std::vector<Task> result;
     for (const Task& task : tasks_) {
@@ -112,12 +165,18 @@ std::vector<Task> TaskManager::filterTasks(const TaskFilter& filter) const {
     return result;
 }
 
+/*!
+\brief Возвращает задачи, отсортированные по дедлайну.
+*/
 std::vector<Task> TaskManager::sortedByDeadline() const {
     std::vector<Task> result = tasks_;
     sortByDeadline(result);
     return result;
 }
 
+/*!
+\brief Переносит выполненные задачи в архивный файл.
+*/
 std::size_t TaskManager::archiveCompleted() {
     std::ofstream archive(archivePath_, std::ios::app);
     if (!archive) {
@@ -137,10 +196,16 @@ std::size_t TaskManager::archiveCompleted() {
     return count;
 }
 
+/*!
+\brief Возвращает текущий список задач.
+*/
 const std::vector<Task>& TaskManager::tasks() const {
     return tasks_;
 }
 
+/*!
+\brief Находит задачу по идентификатору.
+*/
 Task& TaskManager::findTask(int id) {
     const auto iterator = std::find_if(tasks_.begin(), tasks_.end(), [id](const Task& task) {
         return task.id == id;
@@ -151,6 +216,9 @@ Task& TaskManager::findTask(int id) {
     return *iterator;
 }
 
+/*!
+\brief Находит задачу по идентификатору без возможности изменения.
+*/
 const Task& TaskManager::findTask(int id) const {
     const auto iterator = std::find_if(tasks_.begin(), tasks_.end(), [id](const Task& task) {
         return task.id == id;
@@ -161,6 +229,9 @@ const Task& TaskManager::findTask(int id) const {
     return *iterator;
 }
 
+/*!
+\brief Пересчитывает следующий свободный идентификатор после загрузки данных.
+*/
 void TaskManager::refreshNextId() {
     nextId_ = 1;
     for (const Task& task : tasks_) {

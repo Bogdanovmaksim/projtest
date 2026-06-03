@@ -49,6 +49,7 @@ class TaskManager {
     \param[in] category Категория.
     \param[in] importance Важность.
     \return Созданная задача.
+    \throws std::invalid_argument Если дедлайн находится в прошлом.
     */
     Task addTask(std::string description, Date deadline, std::string category,
                  Importance importance);
@@ -58,6 +59,8 @@ class TaskManager {
     \param[in] id Идентификатор.
     \param[in] update Новые значения полей.
     \return Обновленная задача.
+    \throws std::invalid_argument Если новый дедлайн находится в прошлом.
+    \throws std::invalid_argument Если новый дедлайн раньше текущего дедлайна задачи.
     */
     Task updateTask(int id, const TaskUpdate& update);
 

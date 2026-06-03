@@ -8,14 +8,15 @@ TEST_CASE("participant 1 parseDate checks correct and incorrect dates") {
     CHECK_EQ(date.year, 2026);
     CHECK_EQ(date.month, 6);
     CHECK_EQ(date.day, 1);
-    CHECK_EQ(dateToString(parseDate("2024-02-29")), "2024-02-29");
+    CHECK_EQ(dateToString(parseDate("29.02.2024")), "29.02.2024");
+    CHECK_EQ(dateToString(parseDate("2024-02-29")), "29.02.2024");
     CHECK_THROWS_AS(parseDate("2024-02-30"), std::invalid_argument);
     CHECK_THROWS_AS(parseDate("2024/02/29"), std::invalid_argument);
     CHECK_THROWS_AS(parseDate("abcd-02-29"), std::invalid_argument);
 }
 
 TEST_CASE("participant 1 daysBetween and dateToString cover several scenarios") {
-    CHECK_EQ(dateToString(Date{2026, 1, 5}), "2026-01-05");
+    CHECK_EQ(dateToString(Date{2026, 1, 5}), "05.01.2026");
     CHECK_EQ(daysBetween(parseDate("2026-06-01"), parseDate("2026-06-10")), 9);
     CHECK_EQ(daysBetween(parseDate("2024-02-28"), parseDate("2024-03-01")), 2);
     CHECK_EQ(daysBetween(parseDate("2026-06-10"), parseDate("2026-06-01")), -9);
@@ -49,7 +50,7 @@ TEST_CASE("participant 1 converts importance and status from Russian text") {
 TEST_CASE("participant 1 serialize and deserialize preserve task fields") {
     Task task{7,
               "Текст | с разделителем",
-              parseDate("2026-06-15"),
+              parseDate("15.06.2026"),
               "учеба\\cpp",
               Importance::High,
               Status::Active};

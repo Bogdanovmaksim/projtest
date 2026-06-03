@@ -18,6 +18,9 @@ namespace {
 
 /*!
  * \brief Считывает строку из консоли.
+ * \param[in] prompt Приглашение, которое выводится перед вводом.
+ * \return Строка, введенная пользователем.
+ * \throws std::runtime_error Если поток ввода закрыт.
  */
 std::string readLine(const std::string& prompt) {
     std::cout << prompt;
@@ -30,6 +33,9 @@ std::string readLine(const std::string& prompt) {
 
 /*!
  * \brief Считывает целое число.
+ * \param[in] prompt Приглашение, которое выводится перед вводом.
+ * \return Целое число, введенное пользователем.
+ * \throws std::invalid_argument Если пользователь ввел не целое число.
  */
 int readInt(const std::string& prompt) {
     const std::string text = readLine(prompt);
@@ -43,6 +49,7 @@ int readInt(const std::string& prompt) {
 
 /*!
  * \brief Возвращает текущую дату.
+ * \return Текущая календарная дата.
  */
 Date currentDate() {
     const auto now = std::chrono::floor<std::chrono::days>(std::chrono::system_clock::now());
@@ -53,7 +60,21 @@ Date currentDate() {
 }
 
 /*!
+ * \brief Проверяет, что дедлайн не находится в прошлом.
+ * \param[in] deadline Дата дедлайна для проверки.
+ * \throws std::invalid_argument Если дедлайн раньше сегодняшней даты.
+ */
+void ensureDeadlineIsNotPast(const Date& deadline) {
+    if (task_manager::compareDates(deadline, currentDate()) < 0) {
+        throw std::invalid_argument("Дедлайн не может быть раньше сегодняшней даты");
+    }
+}
+
+/*!
  * \brief Считывает путь или значение по умолчанию.
+ * \param[in] prompt Название запрашиваемого пути.
+ * \param[in] defaultValue Значение, используемое при пустом вводе.
+ * \return Путь, выбранный пользователем.
  */
 std::filesystem::path readPathOrDefault(const std::string& prompt, const std::string& defaultValue) {
     const std::string value = readLine(prompt + " [" + defaultValue + "]: ");
@@ -62,6 +83,9 @@ std::filesystem::path readPathOrDefault(const std::string& prompt, const std::st
 
 /*!
  * \brief Возвращает русское название важности.
+ * \param[in] importance Значение важности задачи.
+ * \return Название важности для вывода пользователю.
+ * \throws std::invalid_argument Если значение важности неизвестно.
  */
 std::string importanceToRussian(Importance importance) {
     switch (importance) {
@@ -77,6 +101,9 @@ std::string importanceToRussian(Importance importance) {
 
 /*!
  * \brief Возвращает русское название статуса.
+ * \param[in] status Статус задачи.
+ * \return Название статуса для вывода пользователю.
+ * \throws std::invalid_argument Если значение статуса неизвестно.
  */
 std::string statusToRussian(Status status) {
     switch (status) {
@@ -90,14 +117,18 @@ std::string statusToRussian(Status status) {
 
 /*!
  * \brief Считывает важность задачи.
+ * \return Уровень важности задачи.
+ * \throws std::invalid_argument Если введенное значение важности неизвестно.
  */
 Importance readImportance() {
     std::cout << "Важность: низкая / средняя / высокая\n";
-    return task_manager::importanceFromString(readLine("> "));
+    return task_manager::importanceFromString(readLine("Ввод: "));
 }
 
 /*!
  * \brief Удаляет символ ошибки кодировки из текста.
+ * \param[in] text Исходный текст.
+ * \return Текст без служебных символов и символа ошибки кодировки.
  */
 std::string cleanConsoleText(const std::string& text) {
     std::string result;
@@ -121,6 +152,7 @@ std::string cleanConsoleText(const std::string& text) {
 
 /*!
  * \brief Спрашивает, вернуться ли в меню.
+ * \return true, если пользователь хочет продолжить работу; false, если выбран выход.
  */
 bool waitForNextAction() {
     std::cout << "\nEnter - вернуться в меню, 0 - сохранить и выйти: ";
@@ -131,6 +163,7 @@ bool waitForNextAction() {
 
 /*!
  * \brief Печатает одну задачу.
+ * \param[in] task Задача для вывода.
  */
 void printTask(const Task& task) {
     std::cout << "#" << task.id << '\n'
@@ -143,6 +176,8 @@ void printTask(const Task& task) {
 
 /*!
  * \brief Печатает список задач.
+ * \param[in] tasks Список задач для вывода.
+ * \param[in] title Заголовок списка.
  */
 void printTaskList(const std::vector<Task>& tasks, const std::string& title) {
     std::cout << "\n" << title << "\n";
@@ -158,10 +193,14 @@ void printTaskList(const std::vector<Task>& tasks, const std::string& title) {
 
 /*!
  * \brief Добавляет задачу через консоль.
+ * \param[in,out] manager Менеджер задач, в который добавляется новая задача.
+ * \throws std::invalid_argument Если введенные данные некорректны.
+ * \throws std::runtime_error Если сохранение в файл невозможно.
  */
 void addTask(TaskManager& manager) {
     const std::string description = cleanConsoleText(readLine("Описание: "));
-    const Date deadline = task_manager::parseDate(readLine("Дедлайн (YYYY-MM-DD): "));
+    const Date deadline = task_manager::parseDate(readLine("Дедлайн (ДД.ММ.ГГГГ): "));
+    ensureDeadlineIsNotPast(deadline);
     const std::string category = cleanConsoleText(readLine("Категория: "));
     const Importance importance = readImportance();
     const Task task = manager.addTask(description, deadline, category, importance);
@@ -171,6 +210,9 @@ void addTask(TaskManager& manager) {
 
 /*!
  * \brief Изменяет задачу через консоль.
+ * \param[in,out] manager Менеджер задач, в котором изменяется задача.
+ * \throws std::invalid_argument Если введенные данные некорректны.
+ * \throws std::runtime_error Если задача не найдена или сохранение невозможно.
  */
 void editTask(TaskManager& manager) {
     const int id = readInt("ID задачи: ");
@@ -179,9 +221,11 @@ void editTask(TaskManager& manager) {
     if (!description.empty()) {
         update.description = cleanConsoleText(description);
     }
-    const std::string deadline = readLine("Новый дедлайн YYYY-MM-DD (Enter - без изменений): ");
+    const std::string deadline = readLine("Новый дедлайн ДД.ММ.ГГГГ (Enter - без изменений): ");
     if (!deadline.empty()) {
-        update.deadline = task_manager::parseDate(deadline);
+        const Date parsedDeadline = task_manager::parseDate(deadline);
+        ensureDeadlineIsNotPast(parsedDeadline);
+        update.deadline = parsedDeadline;
     }
     const std::string category = readLine("Новая категория (Enter - без изменений): ");
     if (!category.empty()) {
@@ -202,6 +246,8 @@ void editTask(TaskManager& manager) {
 
 /*!
  * \brief Отмечает задачу выполненной.
+ * \param[in,out] manager Менеджер задач, в котором изменяется статус.
+ * \throws std::runtime_error Если задача не найдена или сохранение невозможно.
  */
 void markDone(TaskManager& manager) {
     manager.markDone(readInt("ID задачи: "));
@@ -211,6 +257,8 @@ void markDone(TaskManager& manager) {
 
 /*!
  * \brief Удаляет задачу.
+ * \param[in,out] manager Менеджер задач, из которого удаляется задача.
+ * \throws std::runtime_error Если задача не найдена или сохранение невозможно.
  */
 void removeTask(TaskManager& manager) {
     const Task removed = manager.removeTask(readInt("ID задачи: "));
@@ -221,6 +269,8 @@ void removeTask(TaskManager& manager) {
 
 /*!
  * \brief Фильтрует задачи.
+ * \param[in] manager Менеджер задач, из которого берутся данные.
+ * \throws std::invalid_argument Если параметры фильтра некорректны.
  */
 void filterTasks(const TaskManager& manager) {
     TaskFilter filter;
@@ -247,6 +297,8 @@ void filterTasks(const TaskManager& manager) {
 
 /*!
  * \brief Архивирует выполненные задачи.
+ * \param[in,out] manager Менеджер задач, который выполняет архивацию.
+ * \throws std::runtime_error Если файл архива невозможно открыть.
  */
 void archiveCompleted(TaskManager& manager) {
     const std::size_t count = manager.archiveCompleted();
@@ -272,6 +324,9 @@ void printMenu() {
 
 /*!
  * \brief Выполняет команду меню.
+ * \param[in,out] manager Менеджер задач.
+ * \param[in] command Номер команды меню.
+ * \throws std::invalid_argument Если номер команды неизвестен.
  */
 void handleCommand(TaskManager& manager, int command) {
     switch (command) {
@@ -334,10 +389,15 @@ int main() {
                     return 0;
                 }
                 std::cout << "Ошибка: " << error.what() << '\n';
+            } catch (...) {
+                std::cout << "Ошибка: неизвестное исключение\n";
             }
         }
     } catch (const std::exception& error) {
         std::cerr << "Критическая ошибка: " << error.what() << '\n';
+        return 1;
+    } catch (...) {
+        std::cerr << "Критическая ошибка: неизвестное исключение\n";
         return 1;
     }
 }
