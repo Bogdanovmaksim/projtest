@@ -3,6 +3,7 @@
 #include <iostream>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include "task_manager.h"
 
