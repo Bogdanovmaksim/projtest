@@ -1,0 +1,2 @@
+/usr/bin/ar qc libtask_core.a CMakeFiles/task_core.dir/src/task.cpp.o CMakeFiles/task_core.dir/src/task_manager.cpp.o
+/usr/bin/ranlib libtask_core.a

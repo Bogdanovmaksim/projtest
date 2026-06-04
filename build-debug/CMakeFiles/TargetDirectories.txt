@@ -1,0 +1,6 @@
+/Users/max_bogd/Documents/test_cpp/build-debug/CMakeFiles/task_core.dir
+/Users/max_bogd/Documents/test_cpp/build-debug/CMakeFiles/task_manager_app.dir
+/Users/max_bogd/Documents/test_cpp/build-debug/CMakeFiles/task_manager_tests.dir
+/Users/max_bogd/Documents/test_cpp/build-debug/CMakeFiles/test.dir
+/Users/max_bogd/Documents/test_cpp/build-debug/CMakeFiles/edit_cache.dir
+/Users/max_bogd/Documents/test_cpp/build-debug/CMakeFiles/rebuild_cache.dir

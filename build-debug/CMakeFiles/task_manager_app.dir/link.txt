@@ -1,0 +1,1 @@
+/usr/bin/c++  -arch arm64 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/task_manager_app.dir/src/main.cpp.o -o task_manager_app  libtask_core.a
